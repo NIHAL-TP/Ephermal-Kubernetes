@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: runner-set-github-apps
+    runs-on: runner-set
     steps:
       - name: Checkout
         uses: actions/checkout@v4
