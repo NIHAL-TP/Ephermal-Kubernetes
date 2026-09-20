@@ -8,5 +8,5 @@ people often forget to remove these apps or servers after using it,also team acc
 
 The solution is the Ephermal Kubernetes.
 After a small change the developer might want to test it.so the developer create a PR to the main branch.
-on adding a label to the pr,a github actions pipeline starts.The pipeline uses vcluster to implement ephermal kubernetes and build application automatically.on test completion,the developer remove the label from the PR and the infrastructure is automatically destroyed.
+on adding a label to the pr,a github actions pipeline starts.The pipeline uses vcluster to implement ephermal kubernetes and build application automatically.on test completion,the developer remove the label from the PR and the infrastructure is automatically destroyed#.
 Which helps in reducing time,effort,errors and cost. 
