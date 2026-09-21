@@ -1,7 +1,7 @@
 name: ephermal kubernetes deploy
 on:
   pull_request:
-    types: [labeled,unlabeled]
+    types: [labeled,unlabeled,closed]
 
 jobs:
   deploy:
@@ -30,7 +30,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
   destroy:
-    if: github.event.action == 'unlabeled' && github.event.label.name == 'test'
+    if: (github.event.action == 'unlabeled' && github.event.label.name == 'test') || github.event.action == 'closed'
     runs-on: runner-set
     steps:
       - name: install kubectl
