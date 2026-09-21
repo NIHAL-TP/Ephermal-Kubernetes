@@ -21,25 +21,7 @@ jobs:
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
           echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
           sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-      - name: check available tools
-        run: |
-          which getent || echo "getent NOT found"
-          which curl || echo "curl NOT found"
-          which nslookup || echo "nslookup NOT found"
-          which dig || echo "dig NOT found"
-      - name: debug dns resolution
-        run: |
-          echo "--- attempt 1 ---"
-          getent hosts pr-1.vcluster-pr-1.svc.cluster.local || echo "failed"
-          echo "--- attempt 2, fully qualified ---"
-          getent hosts pr-1.vcluster-pr-1.svc.cluster.local. || echo "failed"
-          echo "--- attempt 3, known-good Service for comparison ---"
-          getent hosts kubernetes.default.svc.cluster.local || echo "failed"
-          echo "--- attempt 4, after a short wait ---"
-          sleep 10
-          getent hosts pr-1.vcluster-pr-1.svc.cluster.local || echo "failed"
-      - name: debug network
-        run: curl -k -v https://pr-1.vcluster-pr-1.svc.cluster.local:443/readyz
+
       - name: create vcluster
         working-directory: lab/node-test-app
         run: bash deploy-pr-env.sh
