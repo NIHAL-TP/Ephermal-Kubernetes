@@ -21,6 +21,11 @@ jobs:
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
           echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
           sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+      - name: debug dns config
+        run: |
+          cat /etc/resolv.conf
+          nslookup kubernetes.default.svc.cluster.local || true
+      
       - name: debug network
         run: curl -k -v https://pr-1.vcluster-pr-1.svc.cluster.local:443/readyz
       - name: create vcluster
