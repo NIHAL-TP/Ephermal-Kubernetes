@@ -39,11 +39,12 @@ jobs:
           echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
           sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
       - name: destoy vcluster
+        if: kubectl get namespace vcluster-pr-"${PR_NUM}"
         run: |
           PR_NUM="${{ github.event.pull_request.number }}"
           VCLUSTER_NAME="pr-${PR_NUM}"
-          NAMESPACE="vcluster-pr-${PR_NUM}"
-          kubectl delete namespace "${NAMESPACE}"
+          NAMESPACE="vcluster-pr-${PR_NUM}" 
+          kubectl delete namespace "${NAMESPACE}" 
         
 
     
