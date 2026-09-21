@@ -32,15 +32,18 @@ jobs:
     if: github.event.action == 'unlabeled' && github.event.label.name == 'test'
     runs-on: runner-set
     steps:
-      - name: install vcluster CLI
+      - name: install kubectl
         run: |
-          curl -L -o vcluster "https://github.com/loft-sh/vcluster/releases/latest/download/vcluster-linux-amd64" && sudo install -c -m 0755 vcluster /usr/local/bin && rm -f vcluster
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+          echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
       - name: destoy vcluster
         run: |
           PR_NUM="${{ github.event.pull_request.number }}"
           VCLUSTER_NAME="pr-${PR_NUM}"
           NAMESPACE="vcluster-pr-${PR_NUM}"
-          vcluster delete "${VCLUSTER_NAME}" -n "${NAMESPACE}" --delete-namespace
+          kubectl delete namespace "${NAMESPACE}"
         
 
     
