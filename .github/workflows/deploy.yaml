@@ -12,6 +12,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: true
+      - name: install vcluster CLI
+        run: |
+          curl -L -o vcluster "https://github.com/loft-sh/vcluster/releases/latest/download/vcluster-linux-amd64" && sudo install -c -m 0755 vcluster /usr/local/bin && rm -f vcluster
       - name: create vcluster
         working-directory: lab/node-test-app
         run: bash deploy-pr-env.sh
