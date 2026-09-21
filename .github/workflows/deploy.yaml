@@ -1,0 +1,31 @@
+name: ephermal kubernetes deploy
+on:
+  pull_request:
+    types: [labeled,unlabeled]
+
+jobs:
+  deploy:
+    if: github.event.label.name == 'test' && github.event.action == 'labeled'
+    runs-on: runner-set
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: create vcluster
+        run: cd lab/node-test-app && bash deploy-pr-env.sh
+        env:
+          PR_NUM : ${{ github.event.pull_request.number }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+  destroy:
+    if: github.event.action == 'unlabeled' && github.event.label.name == 'test'
+    runs-on: runner-set
+    steps:
+      - name: destoy vcluster
+        run: |
+          PR_NUM="${{ github.event.pull_request.number }}"
+          VCLUSTER_NAME="pr-${PR_NUM}"
+          NAMESPACE="vcluster-pr-${PR_NUM}"
+          vcluster delete "${VCLUSTER_NAME}" -n "${NAMESPACE}" --delete-namespace
+        
+
+    
