@@ -10,6 +10,8 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v4
+        with:
+          submodules: true
       - name: create vcluster
         working-directory: lab/node-test-app
         run: bash deploy-pr-env.sh
