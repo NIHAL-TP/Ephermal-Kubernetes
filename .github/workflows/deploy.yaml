@@ -32,6 +32,9 @@ jobs:
     if: github.event.action == 'unlabeled' && github.event.label.name == 'test'
     runs-on: runner-set
     steps:
+      - name: install vcluster CLI
+        run: |
+          curl -L -o vcluster "https://github.com/loft-sh/vcluster/releases/latest/download/vcluster-linux-amd64" && sudo install -c -m 0755 vcluster /usr/local/bin && rm -f vcluster
       - name: destoy vcluster
         run: |
           PR_NUM="${{ github.event.pull_request.number }}"
