@@ -11,7 +11,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v4
       - name: create vcluster
-        run: cd lab/node-test-app && bash deploy-pr-env.sh
+        run: pwd && cd lab/node-test-app && bash deploy-pr-env.sh
         env:
           PR_NUM : ${{ github.event.pull_request.number }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
