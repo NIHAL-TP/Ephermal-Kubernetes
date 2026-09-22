@@ -1,0 +1,37 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: main-cluster-role
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments","statefulsets"]
+    verbs: ["create","get","update","delete","list","watch","patch","deletecollection"]
+
+  - apiGroups: [""]
+    resources: ["services","configmaps","namespaces","secrets","serviceaccounts","persistentvolumeclaims","pods"]
+    verbs: ["create","get","update","delete","list","watch","patch","deletecollection"]
+
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["create","get","update","delete","list","watch","patch","deletecollection"]
+  
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["roles","rolebindings","clusterroles","clusterrolebindings"]
+    verbs: ["create","get","update","list","delete","watch","patch","deletecollection","escalate","bind"]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: rolebinding-main-cluster-role
+subjects:
+  - kind: ServiceAccount
+    name: runner-set-gha-rs-no-permission
+    namespace: arc-runners
+    apiGroup: ""
+roleRef:
+  kind: ClusterRole
+  name: main-cluster-role
+  apiGroup: rbac.authorization.k8s.io
+
+
