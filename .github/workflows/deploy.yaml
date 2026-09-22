@@ -26,8 +26,17 @@ jobs:
         working-directory: lab/node-test-app
         run: bash deploy-pr-env.sh
         env:
-          PR_NUM : ${{ github.event.pull_request.number }}
+          PR_NUM: "${{ github.event.pull_request.number }}"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: post comment
+        run: |
+          PR_NUM=${{ github.event.pull_request.number }}
+          curl -L \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          -H "X-GitHub-Api-Version: 2026-03-10" \
+          https://api.github.com/repos/"${{ github.repository }}"/issues/"${PR_NUM}"/comments \
+          -d "{\"body\":\"app is running at http://pr-${PR_NUM}.local\"}"
     
   destroy:
     if: (github.event.action == 'unlabeled' && github.event.label.name == 'test') || github.event.action == 'closed'
