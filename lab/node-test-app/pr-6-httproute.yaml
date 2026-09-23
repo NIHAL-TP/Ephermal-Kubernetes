@@ -16,5 +16,5 @@ spec:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: node-test-app-service
+        - name: node-test-app-service-x-node-ns-x-pr-6
           port: 80
