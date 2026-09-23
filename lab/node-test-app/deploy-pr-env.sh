@@ -41,10 +41,10 @@ echo "pr-${PR_NUMBER} deployment applied successfully."
 kubectl apply -f service.yaml -n $APP_NAMESPACE
 echo "pr-${PR_NUMBER} service applied successfully."
 
-cp gateway.yaml "pr-${PR_NUMBER}-gateway.yaml"
-sed -i "s|hostname:.*|hostname: pr-${PR_NUMBER}.local|" "pr-${PR_NUMBER}-gateway.yaml"
-kubectl apply -f pr-${PR_NUMBER}-gateway.yaml -n $APP_NAMESPACE
-echo "pr-${PR_NUMBER} gateway applied"
+cp httproute.yaml "pr-${PR_NUMBER}-httproute.yaml"
+sed -i "s|- pr-.*\.local|- pr-${PR_NUMBER}.local|" "pr-${PR_NUMBER}-httproute.yaml"
+kubectl apply -f pr-${PR_NUMBER}-httproute.yaml -n $APP_NAMESPACE
+echo "pr-${PR_NUMBER} httproute applied"
 
 kubectl wait --for=condition=ready pod -l app=node-test-app -n $APP_NAMESPACE --timeout=120s
 echo "pr-${PR_NUMBER} deployment completed successfully."

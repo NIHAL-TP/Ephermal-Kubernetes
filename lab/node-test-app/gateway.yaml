@@ -12,24 +12,3 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
----
-kind: HTTPRoute
-apiVersion: gateway.networking.k8s.io/v1
-metadata:
-  name: http-route
-  namespace: node-ns
-spec:
-  parentRefs:
-    - name: nginx-gateway
-      namespace: nginx-gateway
-      sectionName: http
-  hostnames:
-    - pr-4.local
-  rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /
-      backendRefs:
-        - name: node-test-app-service
-          port: 80
