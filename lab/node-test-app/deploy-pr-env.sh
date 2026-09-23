@@ -20,6 +20,7 @@ echo "${VCLUSTER_NAME} vcluster created successfully."
 # ------------------------------------------------------------------
 # STEP A: Extract Virtual Cluster Kubeconfig Secret directly
 # ------------------------------------------------------------------
+# ------------------------------------------------------------------
 # STEP A: Extract Virtual Cluster Kubeconfig Secret & Auto-Detect Mode
 # ------------------------------------------------------------------
 echo "Extracting virtual cluster access configuration..."
@@ -38,9 +39,17 @@ for i in {1..15}; do
         kubectl get secret "vc-${VCLUSTER_NAME}" -n "$VCLUSTER_NAMESPACE" -o jsonpath="{.data.config}" | base64 --decode > "$VC_KUBECONFIG"
         
         if [ "$IS_IN_CLUSTER" = "true" ]; then
-            # CI / In-Cluster Execution: Use internal service DNS (No port-forwarding needed)
-            INTERNAL_VC_URL="https://${VCLUSTER_NAME}.${VCLUSTER_NAMESPACE}.svc.cluster.local:443"
+            # CI / In-Cluster Execution: Use internal service name matching cert SAN
+            INTERNAL_VC_URL="https://${VCLUSTER_NAME}.${VCLUSTER_NAMESPACE}:443"
             sed -i -E "s|server: https://[^[:space:]]+|server: ${INTERNAL_VC_URL}|g" "$VC_KUBECONFIG"
+            
+            # Force insecure-skip-tls-verify directly into the kubeconfig YAML
+            if grep -q "insecure-skip-tls-verify" "$VC_KUBECONFIG"; then
+                sed -i 's/insecure-skip-tls-verify: false/insecure-skip-tls-verify: true/g' "$VC_KUBECONFIG"
+            else
+                sed -i '/server: .*/a \    insecure-skip-tls-verify: true' "$VC_KUBECONFIG"
+            fi
+            
             echo "Running in-cluster (CI mode) -> targeting ${INTERNAL_VC_URL}"
         else
             # Local Laptop Execution: Start background port-forward
@@ -53,9 +62,8 @@ for i in {1..15}; do
             
             LOCAL_VC_URL="https://127.0.0.1:8443"
             sed -i -E "s|server: https://[^[:space:]]+|server: ${LOCAL_VC_URL}|g" "$VC_KUBECONFIG"
+            kubectl config set-cluster default --insecure-skip-tls-verify=true --kubeconfig="$VC_KUBECONFIG" >/dev/null 2>&1 || true
         fi
-
-        kubectl config set-cluster default --insecure-skip-tls-verify=true --kubeconfig="$VC_KUBECONFIG" >/dev/null 2>&1 || true
         break
     fi
     sleep 2
@@ -72,10 +80,17 @@ kubectl --kubeconfig="$VC_KUBECONFIG" create namespace "$APP_NAMESPACE" --dry-ru
 kubectl --kubeconfig="$VC_KUBECONFIG" apply --validate=false -f deployment.yaml -n "$APP_NAMESPACE"
 kubectl --kubeconfig="$VC_KUBECONFIG" apply --validate=false -f service.yaml -n "$APP_NAMESPACE"
 
-# Wait for workload pods inside vcluster
+# Wait for workload pods to be created and ready inside vcluster
+echo "Waiting for workload pods to start..."
+for i in {1..20}; do
+    if kubectl --kubeconfig="$VC_KUBECONFIG" get pods -n "$APP_NAMESPACE" -l app=node-test-app --no-headers 2>/dev/null | grep -q .; then
+        break
+    fi
+    sleep 2
+done
+
 kubectl --kubeconfig="$VC_KUBECONFIG" wait --for=condition=ready pod -l app=node-test-app -n "$APP_NAMESPACE" --timeout=120s
 echo "Workload pods are ready inside vcluster."
-
 # ------------------------------------------------------------------
 # STEP C: Apply HTTPRoute on HOST Cluster
 # ------------------------------------------------------------------
