@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-PR_NUMBER=6
+PR_NUMBER="${PR_NUM:-6}"
 echo "Deploying ephemeral environment for PR #${PR_NUMBER}..."
 
 VCLUSTER_NAME="pr-${PR_NUMBER}"
@@ -18,31 +18,70 @@ kubectl wait --for=condition=ready pod -l app=vcluster,release=$VCLUSTER_NAME -n
 echo "${VCLUSTER_NAME} vcluster created successfully."
 
 # ------------------------------------------------------------------
-# STEP A: Deploy Workload INSIDE Virtual Cluster via vcluster CLI
+# STEP A: Extract Virtual Cluster Kubeconfig Secret directly
+# ------------------------------------------------------------------
+# STEP A: Extract Virtual Cluster Kubeconfig Secret & Auto-Detect Mode
+# ------------------------------------------------------------------
+echo "Extracting virtual cluster access configuration..."
+
+VC_KUBECONFIG="/tmp/vc-kubeconfig-${PR_NUMBER}.yaml"
+
+# Auto-detect if running inside a cluster (like a GitHub runner pod) or locally
+if [ -n "${KUBERNETES_SERVICE_HOST:-}" ] || [ -f /var/run/secrets/kubernetes.io/serviceaccount/token ]; then
+    IS_IN_CLUSTER="true"
+else
+    IS_IN_CLUSTER="${IN_CLUSTER:-false}"
+fi
+
+for i in {1..15}; do
+    if kubectl get secret "vc-${VCLUSTER_NAME}" -n "$VCLUSTER_NAMESPACE" >/dev/null 2>&1; then
+        kubectl get secret "vc-${VCLUSTER_NAME}" -n "$VCLUSTER_NAMESPACE" -o jsonpath="{.data.config}" | base64 --decode > "$VC_KUBECONFIG"
+        
+        if [ "$IS_IN_CLUSTER" = "true" ]; then
+            # CI / In-Cluster Execution: Use internal service DNS (No port-forwarding needed)
+            INTERNAL_VC_URL="https://${VCLUSTER_NAME}.${VCLUSTER_NAMESPACE}.svc.cluster.local:443"
+            sed -i -E "s|server: https://[^[:space:]]+|server: ${INTERNAL_VC_URL}|g" "$VC_KUBECONFIG"
+            echo "Running in-cluster (CI mode) -> targeting ${INTERNAL_VC_URL}"
+        else
+            # Local Laptop Execution: Start background port-forward
+            echo "Running locally -> setting up background port-forward..."
+            pkill -f "port-forward -n ${VCLUSTER_NAMESPACE} svc/${VCLUSTER_NAME}" || true
+            kubectl port-forward -n "$VCLUSTER_NAMESPACE" "svc/${VCLUSTER_NAME}" 8443:443 > /dev/null 2>&1 &
+            PF_PID=$!
+            trap "kill $PF_PID 2>/dev/null || true" EXIT
+            sleep 2
+            
+            LOCAL_VC_URL="https://127.0.0.1:8443"
+            sed -i -E "s|server: https://[^[:space:]]+|server: ${LOCAL_VC_URL}|g" "$VC_KUBECONFIG"
+        fi
+
+        kubectl config set-cluster default --insecure-skip-tls-verify=true --kubeconfig="$VC_KUBECONFIG" >/dev/null 2>&1 || true
+        break
+    fi
+    sleep 2
+done
+# ------------------------------------------------------------------
+# STEP B: Deploy Workload INSIDE Virtual Cluster
 # ------------------------------------------------------------------
 echo "Deploying workloads inside vcluster..."
 
-# Create namespace inside vcluster using a temporary manifest file
-cat <<EOF > /tmp/ns-${PR_NUMBER}.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: ${APP_NAMESPACE}
-EOF
+# Create namespace inside vcluster (disable validation to prevent openapi timeout lookup issues)
+kubectl --kubeconfig="$VC_KUBECONFIG" create namespace "$APP_NAMESPACE" --dry-run=client -o yaml | kubectl --kubeconfig="$VC_KUBECONFIG" apply --validate=false -f -
 
-vcluster connect "$VCLUSTER_NAME" -n "$VCLUSTER_NAMESPACE" --silent -- kubectl apply -f /tmp/ns-${PR_NUMBER}.yaml
-rm -f /tmp/ns-${PR_NUMBER}.yaml
+# Apply deployment and service inside vcluster
+kubectl --kubeconfig="$VC_KUBECONFIG" apply --validate=false -f deployment.yaml -n "$APP_NAMESPACE"
+kubectl --kubeconfig="$VC_KUBECONFIG" apply --validate=false -f service.yaml -n "$APP_NAMESPACE"
 
-vcluster connect "$VCLUSTER_NAME" -n "$VCLUSTER_NAMESPACE" --silent -- kubectl apply -f deployment.yaml -n "$APP_NAMESPACE"
-vcluster connect "$VCLUSTER_NAME" -n "$VCLUSTER_NAMESPACE" --silent -- kubectl apply -f service.yaml -n "$APP_NAMESPACE"
-
-vcluster connect "$VCLUSTER_NAME" -n "$VCLUSTER_NAMESPACE" --silent -- kubectl wait --for=condition=ready pod -l app=node-test-app -n "$APP_NAMESPACE" --timeout=120s
+# Wait for workload pods inside vcluster
+kubectl --kubeconfig="$VC_KUBECONFIG" wait --for=condition=ready pod -l app=node-test-app -n "$APP_NAMESPACE" --timeout=120s
 echo "Workload pods are ready inside vcluster."
 
 # ------------------------------------------------------------------
-# STEP B: Apply HTTPRoute on HOST Cluster
+# STEP C: Apply HTTPRoute on HOST Cluster
 # ------------------------------------------------------------------
-# Dynamically fetch synced service name from host namespace
+# Switch back to HOST cluster context
+export KUBECONFIG="$HOST_KUBECONFIG"
+
 echo "Fetching synced service name from host namespace ${VCLUSTER_NAMESPACE}..."
 SYNCED_SVC=""
 for i in {1..15}; do
@@ -67,6 +106,6 @@ sed -i "s|name: node-test-app-service|name: ${SYNCED_SVC}|" "pr-${PR_NUMBER}-htt
 
 # Apply HTTPRoute to host namespace where vcluster lives
 kubectl apply -f "pr-${PR_NUMBER}-httproute.yaml" -n "$VCLUSTER_NAMESPACE"
-echo "pr-${PR_NUMBER} HTTPRoute applied to host namespace ${VCLUSTER_NAMESPACE}."
+rm -f "pr-${PR_NUMBER}-httproute.yaml"
 
 echo "pr-${PR_NUMBER} deployment completed successfully!"
