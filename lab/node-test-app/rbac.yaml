@@ -11,8 +11,8 @@ rules:
     resources: ["services","configmaps","namespaces","secrets","serviceaccounts","persistentvolumeclaims","pods"]
     verbs: ["create","get","update","delete","list","watch","patch","deletecollection"]
 
-  - apiGroups: ["networking.k8s.io"]
-    resources: ["ingresses"]
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["gateways"]
     verbs: ["create","get","update","delete","list","watch","patch","deletecollection"]
   
   - apiGroups: ["rbac.authorization.k8s.io"]

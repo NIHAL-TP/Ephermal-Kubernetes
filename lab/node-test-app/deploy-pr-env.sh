@@ -41,9 +41,9 @@ echo "pr-${PR_NUMBER} deployment applied successfully."
 kubectl apply -f service.yaml -n $APP_NAMESPACE
 echo "pr-${PR_NUMBER} service applied successfully."
 
-cp ingress.yaml "pr-${PR_NUMBER}-ingress.yaml"
+cp gateway.yaml "pr-${PR_NUMBER}-gateway.yaml"
 sed -i "s|host:.*|host: pr-${PR_NUMBER}.local|" "pr-${PR_NUMBER}-ingress.yaml"
-kubectl apply -f pr-${PR_NUMBER}-ingress.yaml -n $APP_NAMESPACE
+kubectl apply -f pr-${PR_NUMBER}-gateway.yaml -n $APP_NAMESPACE
 echo "pr-${PR_NUMBER} ingress applied"
 
 kubectl wait --for=condition=ready pod -l app=node-test-app -n $APP_NAMESPACE --timeout=120s
