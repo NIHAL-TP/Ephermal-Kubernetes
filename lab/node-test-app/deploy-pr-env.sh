@@ -43,7 +43,8 @@ for i in {1..15}; do
             INTERNAL_VC_URL="https://${VCLUSTER_NAME}.${VCLUSTER_NAMESPACE}:443"
             sed -i -E "s|server: https://[^[:space:]]+|server: ${INTERNAL_VC_URL}|g" "$VC_KUBECONFIG"
             
-            # Force insecure-skip-tls-verify directly into the kubeconfig YAML
+            # Remove existing certificate authority data to avoid flag conflict, then set insecure flag
+            sed -i '/certificate-authority-data:/d' "$VC_KUBECONFIG"
             if grep -q "insecure-skip-tls-verify" "$VC_KUBECONFIG"; then
                 sed -i 's/insecure-skip-tls-verify: false/insecure-skip-tls-verify: true/g' "$VC_KUBECONFIG"
             else
@@ -62,7 +63,12 @@ for i in {1..15}; do
             
             LOCAL_VC_URL="https://127.0.0.1:8443"
             sed -i -E "s|server: https://[^[:space:]]+|server: ${LOCAL_VC_URL}|g" "$VC_KUBECONFIG"
-            kubectl config set-cluster default --insecure-skip-tls-verify=true --kubeconfig="$VC_KUBECONFIG" >/dev/null 2>&1 || true
+            sed -i '/certificate-authority-data:/d' "$VC_KUBECONFIG"
+            if grep -q "insecure-skip-tls-verify" "$VC_KUBECONFIG"; then
+                sed -i 's/insecure-skip-tls-verify: false/insecure-skip-tls-verify: true/g' "$VC_KUBECONFIG"
+            else
+                sed -i '/server: .*/a \    insecure-skip-tls-verify: true' "$VC_KUBECONFIG"
+            fi
         fi
         break
     fi
