@@ -32,7 +32,15 @@ sed -i "/server:/a\\    insecure-skip-tls-verify: true" "$KUBECONFIG_PATH"
 
 cat "$KUBECONFIG_PATH"
 export KUBECONFIG=$KUBECONFIG_PATH
-echo "after export"
+echo "waiting for vcluster api server to respond..."
+for i in {1..15}; do
+    if kubectl get namespace default &>/dev/null; then
+        echo "vcluster api server is ready"
+        break;
+    fi
+    echo "vcluster is not ready,retrying..${i}/15"
+    sleep 3
+done
 kubectl create namespace $APP_NAMESPACE
 echo "${APP_NAMESPACE} namespace created successfully."
 kubectl apply -f deployment.yaml -n $APP_NAMESPACE
