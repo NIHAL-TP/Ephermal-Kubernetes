@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 #source .env
-PR_NUMBER=$PR_NUM
+PR_NUMBER=5     #$PR_NUM
 echo "$PR_NUMBER"
 VCLUSTER_NAME="pr-${PR_NUMBER}"
 VCLUSTER_NAMESPACE="vcluster-pr-${PR_NUMBER}"
@@ -41,10 +41,10 @@ echo "pr-${PR_NUMBER} deployment applied successfully."
 kubectl apply -f service.yaml -n $APP_NAMESPACE
 echo "pr-${PR_NUMBER} service applied successfully."
 
-cp ingress.yaml "pr-${PR_NUMBER}-ingress.yaml"
-sed -i "s|host:.*|host: pr-${PR_NUMBER}.local|" "pr-${PR_NUMBER}-ingress.yaml"
-kubectl apply -f pr-${PR_NUMBER}-ingress.yaml -n $APP_NAMESPACE
-echo "pr-${PR_NUMBER} ingress applied"
+cp httproute.yaml "pr-${PR_NUMBER}-httproute.yaml"
+sed -i "s|- pr-.*\.local|- pr-${PR_NUMBER}.local|" "pr-${PR_NUMBER}-httproute.yaml"
+kubectl apply -f pr-${PR_NUMBER}-httproute.yaml -n $APP_NAMESPACE
+echo "pr-${PR_NUMBER} httproute applied"
 
 kubectl wait --for=condition=ready pod -l app=node-test-app -n $APP_NAMESPACE --timeout=120s
 echo "pr-${PR_NUMBER} deployment completed successfully."

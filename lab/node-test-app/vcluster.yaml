@@ -2,3 +2,6 @@ sync:
   toHost:
     ingresses:
       enabled: true
+    gatewayApi:
+      httpRoutes:
+        enabled: true
