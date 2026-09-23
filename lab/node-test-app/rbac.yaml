@@ -12,7 +12,7 @@ rules:
     verbs: ["create","get","update","delete","list","watch","patch","deletecollection"]
 
   - apiGroups: ["gateway.networking.k8s.io"]
-    resources: ["gateways"]
+    resources: ["gateways","httproutes"]
     verbs: ["create","get","update","delete","list","watch","patch","deletecollection"]
   
   - apiGroups: ["rbac.authorization.k8s.io"]
