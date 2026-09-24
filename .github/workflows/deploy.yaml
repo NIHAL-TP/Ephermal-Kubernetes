@@ -31,12 +31,13 @@ jobs:
       - name: post comment
         run: |
           PR_NUM=${{ github.event.pull_request.number }}
+          BODY="App is running at http://pr-${PR_NUM}.local:8080"
           curl -L \
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
           -H "X-GitHub-Api-Version: 2026-03-10" \
           https://api.github.com/repos/"${{ github.repository }}"/issues/"${PR_NUM}"/comments \
-          -d "{\"body\":\"app is running at http://pr-${PR_NUM}.local:8080}"
+          -d "{\"body\":\"${BODY}\"}"
     
   destroy:
     if: (github.event.action == 'unlabeled' && github.event.label.name == 'test') || github.event.action == 'closed'
