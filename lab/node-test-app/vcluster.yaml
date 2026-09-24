@@ -5,3 +5,9 @@ sync:
     gatewayApi:
       httpRoutes:
         enabled: true
+  fromHost:
+    gateways:
+      enabled: true
+      mappings:
+        byName:
+          "nginx-gateway/nginx-gateway": "nginx-gateway/nginx-gateway"
