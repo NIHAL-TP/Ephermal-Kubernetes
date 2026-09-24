@@ -14,14 +14,14 @@ jobs:
           submodules: true
 
       - name: Build and Push with Kaniko
-        uses: aevea/action-kaniko@v1.6.0
+        uses: aevea/action-kaniko@v0.14.0
         with:
           path: lab/node-test-app
           image: nihaltp/nodeapp
           tag: pr-${{ github.event.pull_request.number }}-${{ github.sha }}
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          
+
       - name: install vcluster CLI
         run: |
           curl -L -o vcluster "https://github.com/loft-sh/vcluster/releases/latest/download/vcluster-linux-amd64" && sudo install -c -m 0755 vcluster /usr/local/bin && rm -f vcluster
