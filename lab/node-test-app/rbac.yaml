@@ -8,13 +8,17 @@ rules:
     verbs: ["create","get","update","delete","list","watch","patch","deletecollection"]
 
   - apiGroups: [""]
-    resources: ["services","configmaps","namespaces","secrets","serviceaccounts","persistentvolumeclaims","pods"]
+    resources: ["services","configmaps","namespaces","secrets","persistentvolumeclaims","serviceaccounts","pods"]
     verbs: ["create","get","update","delete","list","watch","patch","deletecollection"]
 
   - apiGroups: ["networking.k8s.io"]
     resources: ["ingresses"]
     verbs: ["create","get","update","delete","list","watch","patch","deletecollection"]
   
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["httproutes", "gateways"]
+    verbs: ["create","get","update","delete","list","watch","patch","deletecollection"]
+
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["roles","rolebindings","clusterroles","clusterrolebindings"]
     verbs: ["create","get","update","list","delete","watch","patch","deletecollection","escalate","bind"]
