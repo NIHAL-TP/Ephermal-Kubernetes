@@ -10,4 +10,22 @@ sync:
       enabled: true
       mappings:
         byName:
+          "nginx-gateway/nginx-gateway": "nginx-gateway/nginx-gateway"sync:
+  toHost:
+    ingresses:
+      enabled: true
+    gatewayApi:
+      httpRoutes:
+        enabled: true
+  fromHost:
+    gateways:
+      enabled: true
+      mappings:
+        byName:
           "nginx-gateway/nginx-gateway": "nginx-gateway/nginx-gateway"
+      allowedRoutes:
+        overrides:
+          - hostNamespace: nginx-gateway
+            name: nginx-gateway
+            virtualNamespacePolicy:
+              from: All
