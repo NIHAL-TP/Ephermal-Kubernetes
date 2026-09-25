@@ -18,7 +18,9 @@ rules:
   - apiGroups: ["gateway.networking.k8s.io"]
     resources: ["httproutes", "gateways"]
     verbs: ["create","get","update","delete","list","watch","patch","deletecollection"]
-
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create", "get"]
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["roles","rolebindings","clusterroles","clusterrolebindings"]
     verbs: ["create","get","update","list","delete","watch","patch","deletecollection","escalate","bind"]
