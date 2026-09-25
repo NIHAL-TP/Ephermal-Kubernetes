@@ -2,6 +2,7 @@
 set -euo pipefail
 #source .env
 PR_NUMBER=$PR_NUM
+IMAGE=$IMAGE_TAG
 echo "$PR_NUMBER"
 VCLUSTER_NAME="pr-${PR_NUMBER}"
 VCLUSTER_NAMESPACE="vcluster-pr-${PR_NUMBER}"
@@ -28,11 +29,19 @@ VCLUSTER_IP=$(kubectl get svc "${VCLUSTER_NAME}" -n "${VCLUSTER_NAMESPACE}" -o j
 sed -i "s|server:.*|server: https://${VCLUSTER_IP}:443|" "$KUBECONFIG_PATH"
 sed -i "/certificate-authority-data:/d" "$KUBECONFIG_PATH"
 sed -i "/server:/a\\    insecure-skip-tls-verify: true" "$KUBECONFIG_PATH"
-
+sed -i "s|nihaltp/nodeapp:v1|${IMAGE}|g" deployment.yaml
 
 cat "$KUBECONFIG_PATH"
 export KUBECONFIG=$KUBECONFIG_PATH
-echo "after export"
+echo "waiting for vcluster api server to respond..."
+for i in {1..15}; do
+    if kubectl get namespace default &>/dev/null; then
+        echo "vcluster api server is ready"
+        break;
+    fi
+    echo "vcluster is not ready,retrying..${i}/15"
+    sleep 3
+done
 kubectl create namespace $APP_NAMESPACE
 echo "${APP_NAMESPACE} namespace created successfully."
 kubectl apply -f deployment.yaml -n $APP_NAMESPACE
@@ -41,10 +50,10 @@ echo "pr-${PR_NUMBER} deployment applied successfully."
 kubectl apply -f service.yaml -n $APP_NAMESPACE
 echo "pr-${PR_NUMBER} service applied successfully."
 
-cp ingress.yaml "pr-${PR_NUMBER}-ingress.yaml"
-sed -i "s|host:.*|host: pr-${PR_NUMBER}.local|" "pr-${PR_NUMBER}-ingress.yaml"
-kubectl apply -f pr-${PR_NUMBER}-ingress.yaml -n $APP_NAMESPACE
-echo "pr-${PR_NUMBER} ingress applied"
+cp httproute.yaml "pr-${PR_NUMBER}-httproute.yaml"
+sed -i "s|- pr-.*\.local|- pr-${PR_NUMBER}.local|" "pr-${PR_NUMBER}-httproute.yaml"
+kubectl apply -f pr-${PR_NUMBER}-httproute.yaml -n $APP_NAMESPACE
+echo "pr-${PR_NUMBER} httproute applied"
 
 kubectl wait --for=condition=ready pod -l app=node-test-app -n $APP_NAMESPACE --timeout=120s
 echo "pr-${PR_NUMBER} deployment completed successfully."
