@@ -33,6 +33,10 @@ subjects:
     name: runner-set-gha-rs-no-permission
     namespace: arc-runners
     apiGroup: ""
+  - kind: ServiceAccount
+    name: runner-set-cloud-gha-rs-no-permission
+    namespace: arc-runners
+    apiGroup: ""
 roleRef:
   kind: ClusterRole
   name: main-cluster-role
