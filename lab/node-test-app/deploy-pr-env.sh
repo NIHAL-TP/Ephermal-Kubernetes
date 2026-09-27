@@ -2,7 +2,7 @@
 set -euo pipefail
 #source .env
 PR_NUMBER=$PR_NUM
-IMAGE=$IMAGE_TAG
+IMAGE="${IMAGE_TAG}"
 echo "$PR_NUMBER"
 VCLUSTER_NAME="pr-${PR_NUMBER}"
 VCLUSTER_NAMESPACE="vcluster-pr-${PR_NUMBER}"
