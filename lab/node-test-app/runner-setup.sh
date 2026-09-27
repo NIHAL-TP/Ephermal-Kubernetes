@@ -40,7 +40,8 @@ kubectl create secret generic arc-github-config \
 --from-literal=github_token="${GITHUB_PAT}"
 
 #runner replica set
-INSTALLATION_NAME="runner-set"
+CLUSTER_ENV="${CLUSTER_ENV:?Set CLUSTER_ENV to 'local' or 'cloud'}"
+INSTALLATION_NAME="runner-set-${CLUSTER_ENV}"
 NAMESPACE="${RUNNER_NS}"
 GITHUB_CONFIG_URL="https://github.com/NIHAL-TP/Ephermal-Kubernetes"
 helm install "${INSTALLATION_NAME}" \

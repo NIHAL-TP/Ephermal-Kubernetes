@@ -4,8 +4,8 @@ on:
     types: [labeled,unlabeled,closed]
 
 jobs:
-  deploy:
-    if: github.event.label.name == 'test' && github.event.action == 'labeled'
+  deploy-local:
+    if: github.event.label.name == 'local-test' && github.event.action == 'labeled'
     runs-on: runner-set
     steps:
       - name: checkout
@@ -32,6 +32,40 @@ jobs:
         run: |
           PR_NUM=${{ github.event.pull_request.number }}
           BODY="App is running at http://pr-${PR_NUM}.local:8080"
+          curl -L \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          -H "X-GitHub-Api-Version: 2026-03-10" \
+          https://api.github.com/repos/"${{ github.repository }}"/issues/"${PR_NUM}"/comments \
+          -d "{\"body\":\"${BODY}\"}"
+  deploy-cloud:
+    if: github.event.label.name == 'cloud-test' && github.event.action == 'labeled'
+    runs-on: runner-set-cloud
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: install vcluster CLI
+        run: |
+          curl -L -o vcluster "https://github.com/loft-sh/vcluster/releases/latest/download/vcluster-linux-amd64" && sudo install -c -m 0755 vcluster /usr/local/bin && rm -f vcluster
+      - name: install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+          echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+      - name: create vcluster
+        working-directory: lab/node-test-app
+        run: bash deploy-pr-env.sh
+        env:
+          PR_NUM: "${{ github.event.pull_request.number }}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: post comment
+        run: |
+          PR_NUM=${{ github.event.pull_request.number }}
+          BODY="App is running at http://pr-${PR_NUM}.dns-vector.online"
           curl -L \
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \

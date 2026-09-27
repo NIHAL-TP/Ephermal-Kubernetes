@@ -9,7 +9,7 @@ spec:
       namespace: nginx-gateway
       sectionName: http
   hostnames:
-    - pr-5.local
+    - pr-pr_num.dns-vector.online
   rules:
     - matches:
         - path:

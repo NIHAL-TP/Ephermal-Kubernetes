@@ -50,7 +50,7 @@ kubectl apply -f service.yaml -n $APP_NAMESPACE
 echo "pr-${PR_NUMBER} service applied successfully."
 
 cp httproute.yaml "pr-${PR_NUMBER}-httproute.yaml"
-sed -i "s|- pr-.*\.local|- pr-${PR_NUMBER}.local|" "pr-${PR_NUMBER}-httproute.yaml"
+sed -i "s|- pr-pr_num\.dns-vector\.online|- pr-${PR_NUMBER}.dns-vector.online|" "pr-${PR_NUMBER}-httproute.yaml"
 kubectl apply -f pr-${PR_NUMBER}-httproute.yaml -n $APP_NAMESPACE
 echo "pr-${PR_NUMBER} httproute applied"
 
