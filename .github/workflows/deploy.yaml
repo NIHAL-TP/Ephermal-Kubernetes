@@ -108,7 +108,7 @@ jobs:
           -d "{\"body\":\"${BODY}\"}"
     
   destroy:
-    if: (github.event.action == 'unlabeled' && github.event.label.name == 'test') || github.event.action == 'closed'
+    if: (github.event.action == 'unlabeled' && github.event.label.name == 'cloud-test') || (github.event.label.name == 'local-test' && github.event.action == 'unlabeled') || github.event.action == 'closed'
     runs-on: runner-set
     steps:
       - name: install kubectl
