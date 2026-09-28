@@ -8,6 +8,9 @@ spec:
     - name: nginx-gateway
       namespace: nginx-gateway
       sectionName: http
+    - name: nginx-gateway
+      namespace: nginx-gateway
+      sectionName: https
   hostnames:
     - pr-pr_num.dns-vector.online
   rules:
