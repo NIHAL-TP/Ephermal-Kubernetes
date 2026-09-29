@@ -48,7 +48,7 @@ jobs:
       - name: post comment
         run: |
           PR_NUM=${{ github.event.pull_request.number }}
-          BODY="App is running at http://pr-${PR_NUM}.local:8080"
+          BODY="App is running at https://pr-${PR_NUM}.local:8080"
           curl -L \
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
@@ -77,6 +77,8 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: lab/node-test-app
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           push: true
           tags: nihaltp/nodeapp:pr-${{ github.event.pull_request.number }}-${{ github.sha }}
       - name: install vcluster CLI
