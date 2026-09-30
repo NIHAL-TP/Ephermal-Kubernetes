@@ -19,7 +19,7 @@ helm install \
 #gateway controller
 kubectl apply --server-side -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.6.1/standard-install.yaml
 kubectl kustomize "https://github.com/nginx/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v2.7.2" | kubectl apply -f -
-helm install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric --create-namespace -n nginx-gateway --set nginx.service.type=NodePort
+helm install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric --create-namespace -n nginx-gateway --set nginx.service.type=LoadBalancer
 kubectl wait --timeout=5m -n nginx-gateway deployment/ngf-nginx-gateway-fabric --for=condition=Available
 
 #vcluster
@@ -40,7 +40,8 @@ kubectl create secret generic arc-github-config \
 --from-literal=github_token="${GITHUB_PAT}"
 
 #runner replica set
-INSTALLATION_NAME="runner-set"
+CLUSTER_ENV="${CLUSTER_ENV:?Set CLUSTER_ENV to 'local' or 'cloud'}"
+INSTALLATION_NAME="runner-set-${CLUSTER_ENV}"
 NAMESPACE="${RUNNER_NS}"
 GITHUB_CONFIG_URL="https://github.com/NIHAL-TP/Ephermal-Kubernetes"
 helm install "${INSTALLATION_NAME}" \

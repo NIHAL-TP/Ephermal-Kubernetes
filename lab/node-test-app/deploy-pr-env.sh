@@ -2,6 +2,7 @@
 set -euo pipefail
 #source .env
 PR_NUMBER=$PR_NUM
+IMAGE="${IMAGE_TAG}"
 echo "$PR_NUMBER"
 VCLUSTER_NAME="pr-${PR_NUMBER}"
 VCLUSTER_NAMESPACE="vcluster-pr-${PR_NUMBER}"
@@ -28,7 +29,7 @@ VCLUSTER_IP=$(kubectl get svc "${VCLUSTER_NAME}" -n "${VCLUSTER_NAMESPACE}" -o j
 sed -i "s|server:.*|server: https://${VCLUSTER_IP}:443|" "$KUBECONFIG_PATH"
 sed -i "/certificate-authority-data:/d" "$KUBECONFIG_PATH"
 sed -i "/server:/a\\    insecure-skip-tls-verify: true" "$KUBECONFIG_PATH"
-
+sed -i "s|nihaltp/nodeapp:v1|${IMAGE}|g" deployment.yaml
 
 cat "$KUBECONFIG_PATH"
 export KUBECONFIG=$KUBECONFIG_PATH
@@ -50,7 +51,7 @@ kubectl apply -f service.yaml -n $APP_NAMESPACE
 echo "pr-${PR_NUMBER} service applied successfully."
 
 cp httproute.yaml "pr-${PR_NUMBER}-httproute.yaml"
-sed -i "s|- pr-.*\.local|- pr-${PR_NUMBER}.local|" "pr-${PR_NUMBER}-httproute.yaml"
+sed -i "s|- pr-pr_num\.dns-vector\.online|- pr-${PR_NUMBER}.dns-vector.online|" "pr-${PR_NUMBER}-httproute.yaml"
 kubectl apply -f pr-${PR_NUMBER}-httproute.yaml -n $APP_NAMESPACE
 echo "pr-${PR_NUMBER} httproute applied"
 

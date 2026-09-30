@@ -4,14 +4,30 @@ on:
     types: [labeled,unlabeled,closed]
 
 jobs:
-  deploy:
-    if: github.event.label.name == 'test' && github.event.action == 'labeled'
+  deploy-local:
+    if: github.event.label.name == 'local-test' && github.event.action == 'labeled'
     runs-on: runner-set
     steps:
       - name: checkout
         uses: actions/checkout@v4
         with:
           submodules: true
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: kubernetes
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: lab/node-test-app
+          push: true
+          tags: nihaltp/nodeapp:pr-${{ github.event.pull_request.number }}-${{ github.sha }}
       - name: install vcluster CLI
         run: |
           curl -L -o vcluster "https://github.com/loft-sh/vcluster/releases/latest/download/vcluster-linux-amd64" && sudo install -c -m 0755 vcluster /usr/local/bin && rm -f vcluster
@@ -28,10 +44,64 @@ jobs:
         env:
           PR_NUM: "${{ github.event.pull_request.number }}"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_TAG: nihaltp/nodeapp:pr-${{ github.event.pull_request.number }}-${{ github.sha }}
       - name: post comment
         run: |
           PR_NUM=${{ github.event.pull_request.number }}
-          BODY="App is running at http://pr-${PR_NUM}.local:8080"
+          BODY="App is running at https://pr-${PR_NUM}.local:8080"
+          curl -L \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          -H "X-GitHub-Api-Version: 2026-03-10" \
+          https://api.github.com/repos/"${{ github.repository }}"/issues/"${PR_NUM}"/comments \
+          -d "{\"body\":\"${BODY}\"}"
+  deploy-cloud:
+    if: github.event.label.name == 'cloud-test' && github.event.action == 'labeled'
+    runs-on: runner-set-cloud
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: kubernetes
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: lab/node-test-app
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          push: true
+          tags: nihaltp/nodeapp:pr-${{ github.event.pull_request.number }}-${{ github.sha }}
+      - name: install vcluster CLI
+        run: |
+          curl -L -o vcluster "https://github.com/loft-sh/vcluster/releases/latest/download/vcluster-linux-amd64" && sudo install -c -m 0755 vcluster /usr/local/bin && rm -f vcluster
+      - name: install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+          echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+      - name: create vcluster
+        working-directory: lab/node-test-app
+        run: bash deploy-pr-env.sh
+        env:
+          PR_NUM: "${{ github.event.pull_request.number }}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_TAG: nihaltp/nodeapp:pr-${{ github.event.pull_request.number }}-${{ github.sha }}
+      - name: post comment
+        run: |
+          PR_NUM=${{ github.event.pull_request.number }}
+          BODY="App is running at http://pr-${PR_NUM}.dns-vector.online"
           curl -L \
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
@@ -39,9 +109,31 @@ jobs:
           https://api.github.com/repos/"${{ github.repository }}"/issues/"${PR_NUM}"/comments \
           -d "{\"body\":\"${BODY}\"}"
     
-  destroy:
-    if: (github.event.action == 'unlabeled' && github.event.label.name == 'test') || github.event.action == 'closed'
-    runs-on: runner-set
+  destroy-cloud:
+    if: (github.event.action == 'unlabeled' && github.event.label.name == 'cloud-test') || github.event.action == 'closed'
+    runs-on: runner-set-cloud
+    steps:
+      - name: install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+          echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+      - name: destoy vcluster
+        run: |
+          PR_NUM="${{ github.event.pull_request.number }}"
+          VCLUSTER_NAME="pr-${PR_NUM}"
+          NAMESPACE="vcluster-pr-${PR_NUM}"
+          if kubectl get namespace "${NAMESPACE}" >/dev/null 2>&1; then
+            echo "namespace '${NAMESPACE}' found,deleting'"
+            kubectl delete namespace "${NAMESPACE}"
+          else
+            echo "namespace '${NAMESPACE}' not found,aborting deletion"
+          fi
+  
+  destroy-local:
+    if: (github.event.action == 'unlabeled' && github.event.label.name == 'local-test') || github.event.action == 'closed'
+    runs-on: runner-set-local
     steps:
       - name: install kubectl
         run: |
